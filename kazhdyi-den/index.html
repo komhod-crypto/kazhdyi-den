@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Каждый день</title>
+<meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F141B" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Каждый день">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column like a phone app — today's ring, week strip, habit cards, add bar */
+:root{
+  --bg:#EDF0F3; --surface:#FFFFFF; --ink:#18202B; --muted:#667385; --line:#D9DFE6;
+  --accent:#2F5BEA; --accent-ink:#FFFFFF; --danger:#D6402B; --empty:#E3E8EE;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0F141B; --surface:#18202A; --ink:#E8EDF3; --muted:#8C99AA; --line:#28323F;
+  --accent:#6E8DFF; --accent-ink:#0F141B; --danger:#FF6B57; --empty:#232C38; color-scheme:dark}}
+
+*{box-sizing:border-box}
+html,body{min-height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:calc(20px + env(safe-area-inset-top,0px));padding-bottom:calc(120px + env(safe-area-inset-bottom,0px));
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.1;margin:4px 0 0;text-wrap:balance}
+.ring{position:relative;width:64px;height:64px;flex:none}
+.ring svg{width:64px;height:64px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:6}
+.ring .track{stroke:var(--empty)}
+.ring .bar{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .35s ease}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}
+
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{border:0;background:transparent;border-radius:14px;padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.day .wd{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.day .dn{font-family:var(--f-display);font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
+.day .fill{width:22px;height:4px;border-radius:2px;background:var(--empty);overflow:hidden}
+.day .fill i{display:block;height:100%;background:var(--accent)}
+.day[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.day[aria-pressed="true"] .wd{color:inherit;opacity:.7}
+.day[aria-pressed="true"] .fill{background:color-mix(in srgb,var(--bg) 25%,transparent)}
+.day[aria-pressed="true"] .fill i{background:var(--bg)}
+
+.marking{font-size:14px;color:var(--muted);margin:-8px 0 0}
+.marking b{color:var(--ink);font-weight:600}
+
+.list{display:flex;flex-direction:column;gap:10px}
+.habit{background:var(--surface);border-radius:18px;padding:14px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.check{width:48px;height:48px;border-radius:50%;border:2.5px solid var(--hc);background:transparent;display:grid;place-items:center;transition:background .15s,transform .1s}
+.check svg{width:22px;height:22px;stroke:var(--surface);stroke-width:3;fill:none;opacity:0;transition:opacity .15s}
+.check[aria-pressed="true"]{background:var(--hc)}
+.check[aria-pressed="true"] svg{opacity:1}
+.check:active{transform:scale(.92)}
+.hbody{min-width:0;display:flex;flex-direction:column;gap:6px}
+.hname{font-weight:600;font-size:16px;overflow-wrap:anywhere}
+.hmeta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hmeta b{color:var(--ink);font-weight:600}
+.dots{display:grid;grid-template-columns:repeat(14,1fr);gap:3px;max-width:224px}
+.dots i{aspect-ratio:1;border-radius:3px;background:var(--empty)}
+.dots i.on{background:var(--hc)}
+.dots i.today{box-shadow:0 0 0 1.5px var(--ink) inset}
+.more{width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:20px;line-height:1}
+.more:hover{background:var(--empty)}
+
+.empty{background:var(--surface);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.empty h2{font-family:var(--f-display);font-size:17px;font-weight:500;margin:0}
+.empty p{margin:0;color:var(--muted);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 12px;font-size:14px}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.backup{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;font-size:13px;color:var(--muted)}
+.link{border:0;background:transparent;color:var(--muted);text-decoration:underline;text-underline-offset:3px;padding:4px}
+.note{font-size:13px;color:var(--muted);text-align:center;margin:0}
+
+.addbar{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.addbar form{max-width:520px;margin:0 auto;display:flex;gap:8px}
+.field{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 14px;font-size:16px}
+.btn{border:0;border-radius:14px;padding:12px 18px;background:var(--accent);color:var(--accent-ink);font-weight:600;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:default}
+
+.sheet-bg{position:fixed;inset:0;background:rgba(10,14,20,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:var(--surface);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.sheet h3{margin:0;font-family:var(--f-display);font-size:17px;font-weight:500}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+.colors{display:flex;gap:10px;flex-wrap:wrap}
+.swatch{width:36px;height:36px;border-radius:50%;border:3px solid transparent;background:var(--sw);box-shadow:0 0 0 1px var(--line)}
+.swatch[aria-pressed="true"]{border-color:var(--surface);box-shadow:0 0 0 2px var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.ghost{border:1px solid var(--line);background:transparent;border-radius:14px;padding:12px 16px}
+.del{border:0;background:transparent;color:var(--danger);padding:12px 4px;font-weight:600;text-align:left}
+.del.armed{background:var(--danger);color:#fff;border-radius:14px;padding:12px 16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="eyebrow" id="today-label">Сегодня</div>
+      <h1>Каждый день</h1>
+    </div>
+    <div class="ring" aria-label="Выполнено сегодня">
+      <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="bar" id="ring-bar" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="169.6"/></svg>
+      <span id="ring-text">0/0</span>
+    </div>
+  </header>
+
+  <nav class="week" id="week" aria-label="Выбор дня"></nav>
+  <p class="marking" id="marking"></p>
+
+  <section class="list" id="list"></section>
+
+  <div class="backup">
+    <button class="link" id="export" type="button">Сохранить копию</button>
+    <button class="link" id="import" type="button">Загрузить копию</button>
+    <input type="file" id="import-file" accept="application/json,.json" hidden>
+  </div>
+  <p class="note" id="note" hidden></p>
+</div>
+
+<div class="addbar">
+  <form id="add-form" autocomplete="off">
+    <input class="field" id="add-name" maxlength="60" placeholder="Новая привычка" aria-label="Название новой привычки">
+    <button class="btn" id="add-btn" type="submit" disabled>Добавить</button>
+  </form>
+</div>
+
+<div class="sheet-bg" id="sheet-bg" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <h3 id="sheet-title">Привычка</h3>
+    <div>
+      <div class="label">Название</div>
+      <input class="field" id="edit-name" maxlength="60" style="width:100%">
+    </div>
+    <div>
+      <div class="label">Цвет</div>
+      <div class="colors" id="edit-colors"></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="edit-save" type="button">Сохранить</button>
+      <button class="ghost" id="edit-close" type="button">Отмена</button>
+    </div>
+    <button class="del" id="edit-del" type="button">Удалить привычку</button>
+  </div>
+</div>
+
+<script>
+const COLORS=['#2F5BEA','#00A37A','#F2542D','#E8A400','#9B51E0','#E0457B'];
+const WD=['вс','пн','вт','ср','чт','пт','сб'];
+const MONTHS=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const SUGGEST=['Выпить 2 л воды','Зарядка 10 минут','Читать 20 страниц','Без сладкого','Лечь до 23:30'];
+const STORE='habits-v1';
+
+let habits=load();
+let sel=key(new Date()), editId=null, editColor=null, delArmed=false;
+
+function key(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function parseKey(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
+function plural(n,a,b,c){const m10=n%10,m100=n%100;if(m10===1&&m100!==11)return a;if(m10>=2&&m10<=4&&(m100<10||m100>=20))return b;return c}
+function isDone(h,k){return !!(h.done&&h.done[k])}
+function streak(h){let d=new Date();if(!isDone(h,key(d)))d=addDays(d,-1);let n=0;while(isDone(h,key(d))){n++;d=addDays(d,-1)}return n}
+function last30(h){let n=0,d=new Date();for(let i=0;i<30;i++){if(isDone(h,key(d)))n++;d=addDays(d,-1)}return n}
+function sorted(){return habits.slice().sort((a,b)=>(a.order||0)-(b.order||0))}
+function esc(s){const t=document.createElement('span');t.textContent=s;return t.innerHTML}
+let noteTimer;
+function showNote(t,sticky){const n=document.getElementById('note');n.textContent=t;n.hidden=!t;clearTimeout(noteTimer);if(t&&!sticky)noteTimer=setTimeout(()=>{n.hidden=true},4000)}
+function newId(){return 'h'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+/* everything lives on this phone, in the app's own storage */
+function load(){try{const v=JSON.parse(localStorage.getItem(STORE)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(habits))}catch(e){showNote('Не удалось сохранить: память браузера недоступна.',true)}}
+function put(h){const i=habits.findIndex(x=>x.id===h.id);if(i<0)habits.push(h);else habits[i]=h;save()}
+
+function addHabit(name){
+  name=name.trim();if(!name)return;
+  put({id:newId(),name,color:COLORS[habits.length%COLORS.length],order:Date.now(),done:{}});
+  render();
+}
+function toggle(id){
+  const h=habits.find(x=>x.id===id);if(!h)return;
+  const done={...(h.done||{})};
+  if(done[sel])delete done[sel];else done[sel]=true;
+  put({...h,done});render();
+}
+
+function renderHeader(){
+  const now=new Date(),t=key(now);
+  document.getElementById('today-label').textContent=WD[now.getDay()]+', '+now.getDate()+' '+MONTHS[now.getMonth()];
+  const total=habits.length,done=habits.filter(h=>isDone(h,t)).length;
+  const c=169.6;document.getElementById('ring-bar').setAttribute('stroke-dashoffset',total?c*(1-done/total):c);
+  document.getElementById('ring-text').textContent=done+'/'+total;
+
+  const week=document.getElementById('week');week.innerHTML='';
+  for(let i=6;i>=0;i--){
+    const d=addDays(now,-i),k=key(d);
+    const frac=habits.length?habits.filter(h=>isDone(h,k)).length/habits.length:0;
+    const b=document.createElement('button');b.className='day';b.type='button';
+    b.setAttribute('aria-pressed',k===sel);b.setAttribute('aria-label',d.getDate()+' '+MONTHS[d.getMonth()]);
+    b.innerHTML='<span class="wd">'+WD[d.getDay()]+'</span><span class="dn">'+d.getDate()+'</span><span class="fill"><i style="width:'+Math.round(frac*100)+'%"></i></span>';
+    b.onclick=()=>{sel=k;render()};week.appendChild(b);
+  }
+  const y=key(addDays(now,-1)),sd=parseKey(sel);
+  const what=sel===t?'сегодня':sel===y?'вчера':sd.getDate()+' '+MONTHS[sd.getMonth()];
+  document.getElementById('marking').innerHTML='Отмечаешь за <b>'+what+'</b>';
+}
+
+function renderList(){
+  const list=document.getElementById('list');list.innerHTML='';
+  if(!habits.length){
+    const e=document.createElement('div');e.className='empty';
+    e.innerHTML='<h2>Добавь первую привычку</h2><p>Каждый день нажимай на кружок, когда сделал. Серия растёт, пока не пропускаешь. Начни с готовой или впиши свою внизу.</p><div class="chips"></div>';
+    SUGGEST.forEach(s=>{const c=document.createElement('button');c.className='chip';c.type='button';c.textContent=s;c.onclick=()=>addHabit(s);e.querySelector('.chips').appendChild(c)});
+    list.appendChild(e);return;
+  }
+  const today=key(new Date());
+  sorted().forEach(h=>{
+    const el=document.createElement('div');el.className='habit';el.style.setProperty('--hc',h.color||COLORS[0]);
+    const s=streak(h),m=last30(h);
+    let dots='';for(let i=13;i>=0;i--){const k=key(addDays(new Date(),-i));dots+='<i class="'+(isDone(h,k)?'on':'')+(k===today?' today':'')+'"></i>'}
+    el.innerHTML='<button class="check" type="button" aria-pressed="'+isDone(h,sel)+'" aria-label="Отметить: '+esc(h.name)+'"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
+      '<div class="hbody"><div class="hname">'+esc(h.name)+'</div><div class="hmeta">серия <b>'+s+'</b> '+plural(s,'день','дня','дней')+' · '+m+' из 30</div><div class="dots" aria-hidden="true">'+dots+'</div></div>'+
+      '<button class="more" type="button" aria-label="Настроить привычку">⋯</button>';
+    el.querySelector('.check').onclick=()=>toggle(h.id);
+    el.querySelector('.more').onclick=()=>openSheet(h.id);
+    list.appendChild(el);
+  });
+}
+function render(){renderHeader();renderList()}
+
+/* edit sheet */
+const bg=document.getElementById('sheet-bg');
+function openSheet(id){
+  const h=habits.find(x=>x.id===id);if(!h)return;
+  editId=id;editColor=h.color||COLORS[0];delArmed=false;
+  document.getElementById('edit-name').value=h.name;
+  renderSwatches();setDel();bg.hidden=false;
+}
+function closeSheet(){bg.hidden=true;editId=null}
+function renderSwatches(){
+  const box=document.getElementById('edit-colors');box.innerHTML='';
+  COLORS.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.className='swatch';b.style.setProperty('--sw',c);b.setAttribute('aria-pressed',c===editColor);b.setAttribute('aria-label','Цвет '+(i+1));b.onclick=()=>{editColor=c;renderSwatches()};box.appendChild(b)});
+}
+function setDel(){const d=document.getElementById('edit-del');d.classList.toggle('armed',delArmed);d.textContent=delArmed?'Нажми ещё раз, чтобы удалить':'Удалить привычку'}
+document.getElementById('edit-save').onclick=()=>{
+  const h=habits.find(x=>x.id===editId),n=document.getElementById('edit-name').value.trim();
+  if(h&&n)put({...h,name:n,color:editColor});closeSheet();render();
+};
+document.getElementById('edit-close').onclick=closeSheet;
+document.getElementById('edit-del').onclick=()=>{
+  if(!delArmed){delArmed=true;setDel();return}
+  habits=habits.filter(x=>x.id!==editId);save();closeSheet();render();
+};
+bg.addEventListener('click',e=>{if(e.target===bg)closeSheet()});
+
+/* add bar */
+const addName=document.getElementById('add-name'),addBtn=document.getElementById('add-btn');
+addName.addEventListener('input',()=>{addBtn.disabled=!addName.value.trim()});
+document.getElementById('add-form').addEventListener('submit',e=>{e.preventDefault();addHabit(addName.value);addName.value='';addBtn.disabled=true});
+
+/* backup: a JSON file the person keeps in Files / iCloud */
+document.getElementById('export').onclick=async()=>{
+  const name='privychki-'+key(new Date())+'.json';
+  const blob=new Blob([JSON.stringify({app:'kazhdyi-den',version:1,habits},null,1)],{type:'application/json'});
+  const file=new File([blob],name,{type:'application/json'});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Каждый день — копия'});return}
+  }catch(e){if(e&&e.name==='AbortError')return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+};
+const importFile=document.getElementById('import-file');
+document.getElementById('import').onclick=()=>importFile.click();
+importFile.addEventListener('change',async()=>{
+  const f=importFile.files[0];importFile.value='';if(!f)return;
+  try{
+    const data=JSON.parse(await f.text()),list=Array.isArray(data)?data:data.habits;
+    if(!Array.isArray(list))throw 0;
+    habits=list.filter(h=>h&&h.id&&h.name);save();render();
+    showNote('Копия загружена: '+habits.length+' '+plural(habits.length,'привычка','привычки','привычек')+'.');
+  }catch(e){showNote('Это не файл копии из «Каждый день».')}
+});
+
+/* the day rolls over while the app stays open */
+let lastDay=key(new Date());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){const t=key(new Date());if(t!==lastDay){if(sel===lastDay)sel=t;lastDay=t;render()}}});
+
+render();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
