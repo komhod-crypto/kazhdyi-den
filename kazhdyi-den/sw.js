@@ -1,5 +1,5 @@
 // Offline: app files from the cache first, fonts cached on first load.
-const CACHE = 'kazhdyi-den-v1';
+const CACHE = 'kazhdyi-den-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
